@@ -1,7 +1,7 @@
 package com.mocadev.kmpbasics
 
-interface Platform {
-    val name: String
-}
+//expect fun getPlatform(): String
 
-expect fun getPlatform(): Platform
+interface IPlatform{
+    fun name(): String
+}
