@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface ArticlesRepository {
 
-    fun observeArticles(): Flow<List<Article>>
+    fun observeArticles(): Flow<List<Article>?>
     suspend fun refreshArticles()
     fun toggleFavArticle(id: Int): Boolean
 }

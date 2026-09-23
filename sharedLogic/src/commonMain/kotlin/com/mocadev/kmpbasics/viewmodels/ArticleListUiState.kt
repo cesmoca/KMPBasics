@@ -14,5 +14,5 @@ data class ArticleListUiState(
     val searchQuery: String = "",
     val onlyFavs: Boolean = false,
     val isRefreshing: Boolean = false,
-    val appState: AppState = AppState.Normal
+    val appState: AppState = AppState.Loading
 )

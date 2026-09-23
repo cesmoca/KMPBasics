@@ -8,14 +8,13 @@ import com.mocadev.kmpbasics.persistence.toEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class FakeArticlesRepository: ArticlesRepository {
+class FakeArticlesRepository : ArticlesRepository {
 
     private val _localSource = FakeLocalSource()
     private val _remoteSource = FakeRemoteSource()
 
-    override fun observeArticles(): Flow<List<Article>> =
-        _localSource.observeArticles().map {
-            list ->
+    override fun observeArticles(): Flow<List<Article>?> =
+        _localSource.observeArticles().map { list ->
             list.map { article -> article.toDomain() }
         }
 

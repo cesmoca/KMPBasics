@@ -1,14 +1,11 @@
 package com.mocadev.kmpbasics.persistence.local
 
-import com.mocadev.kmpbasics.domain.Article
-import com.mocadev.kmpbasics.persistence.remote.ArticleDto
 import com.mocadev.kmpbasics.persistence.toDomain
 import com.mocadev.kmpbasics.persistence.toEntity
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 
 class FakeLocalSource : LocalSource {
 
@@ -40,7 +37,13 @@ class FakeLocalSource : LocalSource {
         )
     )
 
-    override fun observeArticles(): Flow<List<ArticleEntity>> =  dbArticles
+    override fun observeArticles(): Flow<List<ArticleEntity>> {
+
+        return dbArticles.onStart {
+            delay(3_000)
+            //throw Exception("App corrupt")
+        }
+    }
 
     override fun updateArticles(remoteArticles: List<ArticleEntity>) {
         // We need to preserve the users favorites list
