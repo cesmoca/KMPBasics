@@ -2,16 +2,18 @@ package com.mocadev.kmpbasics.repositories
 
 import com.mocadev.kmpbasics.domain.Article
 import com.mocadev.kmpbasics.persistence.local.FakeLocalSource
+import com.mocadev.kmpbasics.persistence.local.LocalSource
 import com.mocadev.kmpbasics.persistence.remote.FakeRemoteSource
+import com.mocadev.kmpbasics.persistence.remote.RemoteSource
 import com.mocadev.kmpbasics.persistence.toDomain
 import com.mocadev.kmpbasics.persistence.toEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class FakeArticlesRepository : ArticlesRepository {
-
-    private val _localSource = FakeLocalSource()
-    private val _remoteSource = FakeRemoteSource()
+class ArticlesRepositoryImpl(
+    private val _localSource: LocalSource,
+    private val _remoteSource: RemoteSource
+) : ArticlesRepository {
 
     override fun observeArticles(): Flow<List<Article>?> =
         _localSource.observeArticles().map { list ->

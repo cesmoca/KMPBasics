@@ -44,10 +44,13 @@ import com.mocadev.kmpbasics.viewmodels.ArticleListViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flow
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 @Preview
-fun App(viewModel: ArticleListViewModel = viewModel { ArticleListViewModel() }) {
+fun App(
+    viewModel: ArticleListViewModel = koinViewModel()
+) {
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -64,7 +67,7 @@ fun App(viewModel: ArticleListViewModel = viewModel { ArticleListViewModel() }) 
                         snackBarMsg = viewModel.snackBarMsg,
                         uiState = uiState,
                         onUiEvent = { event -> viewModel.onUiEvent(event) },
-                        )
+                    )
                 }
             }
         }

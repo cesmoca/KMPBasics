@@ -2,7 +2,8 @@ package com.mocadev.kmpbasics.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mocadev.kmpbasics.repositories.FakeArticlesRepository
+import com.mocadev.kmpbasics.repositories.ArticlesRepository
+import com.mocadev.kmpbasics.repositories.ArticlesRepositoryImpl
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -11,11 +12,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class ArticleListViewModel : ViewModel() {
+class ArticleListViewModel(private val _repository: ArticlesRepository) : ViewModel() {
 
     val snackBarMsg = MutableSharedFlow<String>()
-
-    private val _repository = FakeArticlesRepository()
     private val _articlesList = _repository
         .observeArticles()
         .catch { emit(null) }
@@ -27,7 +26,8 @@ class ArticleListViewModel : ViewModel() {
     val uiState = combine(
         _articlesList, _searchQuery, _onlyFavs, _isRefreshing,
         { articles, searchQuery, onlyFavs, isRefreshing ->
-            val safeArticles = articles ?: return@combine ArticleListUiState(appState = AppState.Error("App is corrupt"))
+            val safeArticles = articles
+                ?: return@combine ArticleListUiState(appState = AppState.Error("App is corrupt"))
 
             val filteredArticles = safeArticles.filter { article ->
                 article.title.contains(searchQuery, ignoreCase = true) ||
