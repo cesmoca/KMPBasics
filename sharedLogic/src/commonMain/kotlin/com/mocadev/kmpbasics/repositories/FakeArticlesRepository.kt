@@ -11,10 +11,7 @@ class FakeArticlesRepository: ArticlesRepository {
     private val _localSource = FakeLocalSource()
     private val _remoteSource = FakeRemoteSource()
 
-    val articlesList = MutableStateFlow(listOf<Article>())
-
     override fun observeArticles(): Flow<List<Article>> = _localSource.observeArticles()
-    override fun openArticle(id: Int): Article? = null
     override fun refreshArticles() = _remoteSource.refreshArticles()
 
 }

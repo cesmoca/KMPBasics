@@ -9,13 +9,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,49 +26,82 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mocadev.kmpbasics.domain.Article
+import com.mocadev.kmpbasics.viewmodels.ArticleListUiState
 import com.mocadev.kmpbasics.viewmodels.ArticleListViewModel
 
 @Composable
 @Preview
 fun App(viewModel: ArticleListViewModel = viewModel { ArticleListViewModel() }) {
-    val articles by viewModel.articlesList.collectAsState(emptyList())
+
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     MaterialTheme {
         Surface(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                ArticleList(
-                    articles = articles,
-                    modifier = Modifier.weight(1f)
-                )
-
-                BottomFilterBox()
-            }
+            AppContent(
+                uiState = uiState,
+                onUiEvent = { event -> viewModel.onUiEvent(event) }
+            )
         }
     }
 }
 
 @Composable
-fun ArticleList(
-    articles: List<Article>,
-    modifier: Modifier = Modifier
+fun AppContent(
+    modifier: Modifier = Modifier,
+    uiState: ArticleListUiState,
+    onUiEvent: (ArticleListViewModel.ArticleListUiEvent) -> Unit
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(PaddingValues(top = 25.dp))
     ) {
-        items(
-            items = articles,
-            key = { article -> article.id }
-        ) { article ->
-            ArticleItem(article = article)
+        ArticleList(
+            uiState = uiState,
+            onUiEvent = { event -> onUiEvent(event) },
+            modifier = Modifier
+                .weight(1f)
+        )
+
+        BottomFilterBox(
+            uiState = uiState,
+            onUiEvent = { event -> onUiEvent(event) },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ArticleList(
+    modifier: Modifier = Modifier,
+    uiState: ArticleListUiState,
+    onUiEvent: (ArticleListViewModel.ArticleListUiEvent) -> Unit
+) {
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { isRefreshing = false },
+        modifier = modifier.fillMaxSize()
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(
+                items = uiState.articlesList,
+                key = { article -> article.id }
+            ) { article ->
+                ArticleItem(article = article)
+            }
         }
     }
 }
@@ -97,10 +131,10 @@ fun ArticleItem(
 
 @Composable
 fun BottomFilterBox(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    uiState: ArticleListUiState,
+    onUiEvent: (ArticleListViewModel.ArticleListUiEvent) -> Unit
 ) {
-    var onlyFavs by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -125,14 +159,20 @@ fun BottomFilterBox(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Switch(
-                    checked = onlyFavs,
-                    onCheckedChange = { onlyFavs = it }
+                    checked = uiState.onlyFavs,
+                    onCheckedChange = { onUiEvent(ArticleListViewModel.ArticleListUiEvent.ToggleOnlyFav) }
                 )
             }
 
             OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
+                value = uiState.searchQuery,
+                onValueChange = {
+                    onUiEvent(
+                        ArticleListViewModel.ArticleListUiEvent.UpdateSearchQuery(
+                            it
+                        )
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
@@ -146,16 +186,25 @@ fun BottomFilterBox(
 
 @Preview(showBackground = true)
 @Composable
-fun ArticleListPreview() {
+fun AppContentPreview() {
+
     val articles = listOf(
         Article(1, "Article 1", "Teaser 1", content = "Content 1"),
         Article(2, "Article 2", "Teaser 2", content = "Content 2"),
         Article(3, "Article 3", "Teaser 3", content = "Content 3")
     )
-    MaterialTheme {
-        Column(modifier = Modifier.fillMaxSize()) {
-            ArticleList(articles, modifier = Modifier.weight(1f))
-            BottomFilterBox()
-        }
-    }
+
+    val searchQuery = "united states"
+    val onlyFavs = true
+
+    val uiState = ArticleListUiState(
+        articles,
+        searchQuery,
+        onlyFavs
+    )
+
+    AppContent(
+        uiState = uiState,
+        onUiEvent = {}
+    )
 }
