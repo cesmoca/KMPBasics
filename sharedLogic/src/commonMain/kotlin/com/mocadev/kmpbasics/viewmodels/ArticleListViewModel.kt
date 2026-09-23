@@ -92,9 +92,16 @@ class ArticleListViewModel: ViewModel() {
 
     private fun refreshArticles(){
         viewModelScope.launch {
-            snackBarMsg.emit("Refreshing articles...")
             _isRefreshing.value = true
-            _repository.refreshArticles()
+
+            try {
+                snackBarMsg.emit("Refreshing articles...")
+                _repository.refreshArticles()
+            }catch (e: Exception){
+                e.message?.let{
+                    snackBarMsg.emit(it)
+                }
+            }
             _isRefreshing.value = false
         }
     }

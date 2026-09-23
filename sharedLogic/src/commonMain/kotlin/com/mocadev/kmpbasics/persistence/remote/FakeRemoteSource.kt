@@ -43,10 +43,12 @@ class FakeRemoteSource: RemoteSource {
         )
     )
 
-    override suspend fun refreshArticles() =
-        remoteArticles.apply {
-            delay(3_000)
-        }
+    override suspend fun refreshArticles(): List<ArticleDto> {
+        delay(3_000)
+
+        //throw Exception("Network error")
+        return remoteArticles
+    }
 
 
 }
