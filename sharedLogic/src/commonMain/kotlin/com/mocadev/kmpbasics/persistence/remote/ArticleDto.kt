@@ -1,9 +1,8 @@
-package com.mocadev.kmpbasics.domain
+package com.mocadev.kmpbasics.persistence.remote
 
-data class Article(
+data class ArticleDto(
     val id: Int,
     val title: String,
     val teaser: String,
     val content: String,
-    val isFav: Boolean,
 )

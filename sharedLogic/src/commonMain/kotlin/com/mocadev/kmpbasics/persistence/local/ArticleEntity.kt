@@ -1,6 +1,6 @@
-package com.mocadev.kmpbasics.domain
+package com.mocadev.kmpbasics.persistence.local
 
-data class Article(
+data class ArticleEntity(
     val id: Int,
     val title: String,
     val teaser: String,

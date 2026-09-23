@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -23,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -84,11 +87,10 @@ fun ArticleList(
     uiState: ArticleListUiState,
     onUiEvent: (ArticleListViewModel.ArticleListUiEvent) -> Unit
 ) {
-    var isRefreshing by remember { mutableStateOf(false) }
 
     PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = { isRefreshing = false },
+        isRefreshing = uiState.isRefreshing,
+        onRefresh = { onUiEvent(ArticleListViewModel.ArticleListUiEvent.RefreshArticles) },
         modifier = modifier.fillMaxSize()
     ) {
         LazyColumn(
@@ -100,7 +102,10 @@ fun ArticleList(
                 items = uiState.articlesList,
                 key = { article -> article.id }
             ) { article ->
-                ArticleItem(article = article)
+                ArticleItem(
+                    article = article,
+                    onClick = { id -> onUiEvent(ArticleListViewModel.ArticleListUiEvent.ToggleFavArticle(id)) }
+                )
             }
         }
     }
@@ -109,23 +114,34 @@ fun ArticleList(
 @Composable
 fun ArticleItem(
     article: Article,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (Int) -> Unit
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth()
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        onClick = { onClick(article.id) },
+        colors = CardDefaults.cardColors(
+            containerColor = if (article.isFav) Color(0xFFFFF9C4) else CardDefaults.cardColors().containerColor
+        )
     ) {
-        Text(
-            text = article.title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            text = article.teaser,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp)
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = article.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = article.teaser,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
     }
 }
 
@@ -160,7 +176,7 @@ fun BottomFilterBox(
                 )
                 Switch(
                     checked = uiState.onlyFavs,
-                    onCheckedChange = { onUiEvent(ArticleListViewModel.ArticleListUiEvent.ToggleOnlyFav) }
+                    onCheckedChange = { onUiEvent(ArticleListViewModel.ArticleListUiEvent.ToggleFilterOnlyFav) }
                 )
             }
 
@@ -189,9 +205,9 @@ fun BottomFilterBox(
 fun AppContentPreview() {
 
     val articles = listOf(
-        Article(1, "Article 1", "Teaser 1", content = "Content 1"),
-        Article(2, "Article 2", "Teaser 2", content = "Content 2"),
-        Article(3, "Article 3", "Teaser 3", content = "Content 3")
+        Article(1, "Article 1", "Teaser 1", content = "Content 1", isFav = true),
+        Article(2, "Article 2", "Teaser 2", content = "Content 2", isFav = false),
+        Article(3, "Article 3", "Teaser 3", content = "Content 3", isFav = false)
     )
 
     val searchQuery = "united states"
