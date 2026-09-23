@@ -7,6 +7,6 @@ import kotlinx.coroutines.flow.Flow
 interface LocalSource {
     fun observeArticles(): Flow<List<ArticleEntity>>
     fun updateArticles(remoteArticles: List<ArticleEntity>)
-    fun toggleFavArticle(id: Int)
+    fun toggleFavArticle(id: Int): Boolean
 
 }

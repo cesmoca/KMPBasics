@@ -8,5 +8,5 @@ interface ArticlesRepository {
 
     fun observeArticles(): Flow<List<Article>>
     suspend fun refreshArticles()
-    fun toggleFavArticle(id: Int)
+    fun toggleFavArticle(id: Int): Boolean
 }

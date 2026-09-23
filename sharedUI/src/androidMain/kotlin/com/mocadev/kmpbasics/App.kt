@@ -1,6 +1,9 @@
 package com.mocadev.kmpbasics
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,18 +14,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,6 +40,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mocadev.kmpbasics.domain.Article
 import com.mocadev.kmpbasics.viewmodels.ArticleListUiState
 import com.mocadev.kmpbasics.viewmodels.ArticleListViewModel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.flow
 
 @Composable
 @Preview
@@ -43,14 +52,15 @@ fun App(viewModel: ArticleListViewModel = viewModel { ArticleListViewModel() }) 
 
     MaterialTheme {
         Surface(
-            modifier = Modifier
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
             AppContent(
+                snackBarMsg = viewModel.snackBarMsg,
                 uiState = uiState,
-                onUiEvent = { event -> viewModel.onUiEvent(event) }
-            )
+                onUiEvent = { event -> viewModel.onUiEvent(event) },
+
+                )
         }
     }
 }
@@ -58,24 +68,81 @@ fun App(viewModel: ArticleListViewModel = viewModel { ArticleListViewModel() }) 
 @Composable
 fun AppContent(
     modifier: Modifier = Modifier,
+    snackBarMsg: Flow<String>,
     uiState: ArticleListUiState,
-    onUiEvent: (ArticleListViewModel.ArticleListUiEvent) -> Unit
+    onUiEvent: (ArticleListViewModel.ArticleListUiEvent) -> Unit,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(PaddingValues(top = 25.dp))
-    ) {
-        ArticleList(
-            uiState = uiState,
-            onUiEvent = { event -> onUiEvent(event) },
-            modifier = Modifier
-                .weight(1f)
-        )
 
-        BottomFilterBox(
-            uiState = uiState,
-            onUiEvent = { event -> onUiEvent(event) },
+    LaunchedEffect(Unit) {
+        snackBarMsg.collectLatest { msg ->
+            snackbarHostState.showSnackbar(msg)
+        }
+    }
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                ArticleList(
+                    uiState = uiState,
+                    onUiEvent = { event -> onUiEvent(event) },
+                    modifier = Modifier.weight(1f)
+                )
+
+                BottomFilterBox(
+                    uiState = uiState,
+                    onUiEvent = { event -> onUiEvent(event) },
+                )
+            }
+
+
+        }
+    }
+}
+
+
+@Composable
+fun FullscreenLoading(
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable(enabled = false) {},
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+fun FullscreenError(
+    modifier: Modifier = Modifier,
+    message: String = "Fatal Error"
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.error,
+            fontWeight = FontWeight.Bold
         )
     }
 }
@@ -87,7 +154,6 @@ fun ArticleList(
     uiState: ArticleListUiState,
     onUiEvent: (ArticleListViewModel.ArticleListUiEvent) -> Unit
 ) {
-
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
         onRefresh = { onUiEvent(ArticleListViewModel.ArticleListUiEvent.RefreshArticles) },
@@ -104,7 +170,13 @@ fun ArticleList(
             ) { article ->
                 ArticleItem(
                     article = article,
-                    onClick = { id -> onUiEvent(ArticleListViewModel.ArticleListUiEvent.ToggleFavArticle(id)) }
+                    onClick = { id ->
+                        onUiEvent(
+                            ArticleListViewModel.ArticleListUiEvent.ToggleFavArticle(
+                                id
+                            )
+                        )
+                    }
                 )
             }
         }
@@ -220,6 +292,7 @@ fun AppContentPreview() {
     )
 
     AppContent(
+        snackBarMsg = flow{},
         uiState = uiState,
         onUiEvent = {}
     )

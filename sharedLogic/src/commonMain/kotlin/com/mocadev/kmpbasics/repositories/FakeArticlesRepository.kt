@@ -28,8 +28,8 @@ class FakeArticlesRepository: ArticlesRepository {
         )
     }
 
-    override fun toggleFavArticle(id: Int) {
-        _localSource.toggleFavArticle(id)
+    override fun toggleFavArticle(id: Int): Boolean {
+        return _localSource.toggleFavArticle(id)
     }
 
 }

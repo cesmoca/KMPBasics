@@ -63,17 +63,22 @@ class FakeLocalSource : LocalSource {
             }
     }
 
-    override fun toggleFavArticle(id: Int) {
+    override fun toggleFavArticle(id: Int): Boolean {
+        var newIsFav = false
+
         dbArticles.value = dbArticles.value.map { article ->
             if (article.id == id) {
+                newIsFav = !article.isFav
                 ArticleEntity(
                     id = article.id,
                     title = article.title,
                     teaser = article.teaser,
                     content = article.content,
-                    isFav = !article.isFav
+                    isFav = newIsFav
                 )
             } else article
         }
+
+        return newIsFav
     }
 }

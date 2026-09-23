@@ -3,6 +3,8 @@ package com.mocadev.kmpbasics.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mocadev.kmpbasics.repositories.FakeArticlesRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -10,6 +12,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class ArticleListViewModel: ViewModel() {
+
+    val snackBarMsg = MutableSharedFlow<String>()
 
     private val _repository = FakeArticlesRepository()
     private val _articlesList = _repository.observeArticles()
@@ -54,8 +58,21 @@ class ArticleListViewModel: ViewModel() {
             is ArticleListUiEvent.UpdateSearchQuery -> updateSearchQuery(event.query)
             is ArticleListUiEvent.ToggleFilterOnlyFav -> toggleOnlyFans()
             is ArticleListUiEvent.RefreshArticles -> refreshArticles()
-            is ArticleListUiEvent.ToggleFavArticle -> _repository.toggleFavArticle(event.id)
+            is ArticleListUiEvent.ToggleFavArticle -> toggleFavArticle(event.id)
         }
+    }
+
+    private fun toggleFavArticle(id: Int) {
+
+        val isFav = _repository.toggleFavArticle(id)
+
+        viewModelScope.launch {
+            snackBarMsg.emit(
+                if (isFav) "Article marked as fav"
+                else "Article removed from favs"
+            )
+        }
+
     }
 
     private fun updateSearchQuery(query: String){
@@ -64,13 +81,23 @@ class ArticleListViewModel: ViewModel() {
 
     private fun toggleOnlyFans(){
         _onlyFavs.value = !_onlyFavs.value
+
+        viewModelScope.launch {
+            snackBarMsg.emit(
+                if (_onlyFavs.value) "Only favorites shown"
+                else "All articles shown"
+            )
+        }
     }
 
     private fun refreshArticles(){
         viewModelScope.launch {
+            snackBarMsg.emit("Refreshing articles...")
             _isRefreshing.value = true
             _repository.refreshArticles()
             _isRefreshing.value = false
         }
     }
+
+
 }
