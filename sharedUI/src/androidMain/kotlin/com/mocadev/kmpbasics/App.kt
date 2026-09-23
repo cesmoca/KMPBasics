@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mocadev.kmpbasics.domain.Article
+import com.mocadev.kmpbasics.viewmodels.AppState
 import com.mocadev.kmpbasics.viewmodels.ArticleListUiState
 import com.mocadev.kmpbasics.viewmodels.ArticleListViewModel
 import kotlinx.coroutines.flow.Flow
@@ -55,12 +56,17 @@ fun App(viewModel: ArticleListViewModel = viewModel { ArticleListViewModel() }) 
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            AppContent(
-                snackBarMsg = viewModel.snackBarMsg,
-                uiState = uiState,
-                onUiEvent = { event -> viewModel.onUiEvent(event) },
-
-                )
+            when (val appState = uiState.appState) {
+                is AppState.Error -> FullscreenError(message = appState.msg)
+                AppState.Loading -> FullscreenLoading()
+                AppState.Normal -> {
+                    AppContent(
+                        snackBarMsg = viewModel.snackBarMsg,
+                        uiState = uiState,
+                        onUiEvent = { event -> viewModel.onUiEvent(event) },
+                        )
+                }
+            }
         }
     }
 }
@@ -130,7 +136,7 @@ fun FullscreenLoading(
 @Composable
 fun FullscreenError(
     modifier: Modifier = Modifier,
-    message: String = "Fatal Error"
+    message: String
 ) {
     Box(
         modifier = modifier
@@ -292,7 +298,7 @@ fun AppContentPreview() {
     )
 
     AppContent(
-        snackBarMsg = flow{},
+        snackBarMsg = flow {},
         uiState = uiState,
         onUiEvent = {}
     )
