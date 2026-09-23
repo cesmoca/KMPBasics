@@ -3,12 +3,16 @@ package com.mocadev.kmpbasics.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mocadev.kmpbasics.repositories.ArticlesRepository
-import com.mocadev.kmpbasics.repositories.ArticlesRepositoryImpl
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -20,7 +24,6 @@ class ArticleListViewModel(private val _repository: ArticlesRepository) : ViewMo
         .catch { emit(null) }
     private val _searchQuery = MutableStateFlow("")
     private val _onlyFavs = MutableStateFlow(false)
-
     private val _isRefreshing = MutableStateFlow(false)
 
     val uiState = combine(
@@ -29,17 +32,13 @@ class ArticleListViewModel(private val _repository: ArticlesRepository) : ViewMo
             val safeArticles = articles
                 ?: return@combine ArticleListUiState(appState = AppState.Error("App is corrupt"))
 
-            val filteredArticles = safeArticles.filter { article ->
-                article.title.contains(searchQuery, ignoreCase = true) ||
-                        article.teaser.contains(searchQuery, ignoreCase = true) ||
-                        article.content.contains(searchQuery, ignoreCase = true)
-            }.filter { article ->
+            val filteredFavArticles = safeArticles.filter { article ->
                 if (!article.isFav && onlyFavs) false
                 else true
             }
 
             ArticleListUiState(
-                articlesList = filteredArticles,
+                articlesList = filteredFavArticles,
                 searchQuery = searchQuery,
                 onlyFavs = onlyFavs,
                 isRefreshing = isRefreshing,
@@ -52,6 +51,15 @@ class ArticleListViewModel(private val _repository: ArticlesRepository) : ViewMo
         ArticleListUiState()
     )
 
+    init {
+        viewModelScope.launch {
+            _searchQuery
+                .debounce(500)
+                .distinctUntilChanged()
+                .onEach { _repository.searchArticles(it) }
+                .collectLatest {}
+        }
+    }
     sealed interface ArticleListUiEvent {
         data class UpdateSearchQuery(val query: String) : ArticleListUiEvent
         data class ToggleFavArticle(val id: Int) : ArticleListUiEvent
@@ -70,9 +78,9 @@ class ArticleListViewModel(private val _repository: ArticlesRepository) : ViewMo
 
     private fun toggleFavArticle(id: Int) {
 
-        val isFav = _repository.toggleFavArticle(id)
-
         viewModelScope.launch {
+            val isFav = _repository.toggleFavArticle(id)
+
             snackBarMsg.emit(
                 if (isFav) "Article marked as fav"
                 else "Article removed from favs"

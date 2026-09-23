@@ -27,8 +27,12 @@ class ArticlesRepositoryImpl(
         )
     }
 
-    override fun toggleFavArticle(id: Int): Boolean {
+    override suspend fun toggleFavArticle(id: Int): Boolean {
         return _localSource.toggleFavArticle(id)
+    }
+
+    override suspend fun searchArticles(query: String) {
+        _localSource.searchArticles(query)
     }
 
 }

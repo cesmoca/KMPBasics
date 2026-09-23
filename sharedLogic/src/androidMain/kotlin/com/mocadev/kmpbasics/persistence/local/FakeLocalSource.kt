@@ -5,12 +5,12 @@ import com.mocadev.kmpbasics.persistence.toEntity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.map
 
 class FakeLocalSource : LocalSource {
 
-    private val dbArticles = MutableStateFlow(
-        listOf(
+    private val dbArticles =
+        mutableListOf(
             ArticleEntity(
                 id = 1,
                 title = "Scientists Discover Coffee Beans That Brew Themselves",
@@ -35,53 +35,63 @@ class FakeLocalSource : LocalSource {
                 isFav = false
             )
         )
-    )
+
+    private val _trigger = MutableStateFlow(false)
+
+    private val observedArticles = MutableStateFlow<List<ArticleEntity>>(dbArticles)
 
     override fun observeArticles(): Flow<List<ArticleEntity>> {
-
-        return dbArticles.onStart {
-            delay(3_000)
-            //throw Exception("App corrupt")
-        }
+        return _trigger.map { observedArticles.value }
     }
 
-    override fun updateArticles(remoteArticles: List<ArticleEntity>) {
+    override suspend fun updateArticles(remoteArticles: List<ArticleEntity>) {
         // We need to preserve the users favorites list
-        val favArticlesEntity = dbArticles.value.filter { it.isFav }
+        val favArticlesEntity = dbArticles.filter { it.isFav }.toList()
         val remoteArticlesEntity = remoteArticles.map { it.toDomain().toEntity() }
 
-        // Now let's preserve the favs in the new articles
-        dbArticles.value =
-            remoteArticlesEntity.map { remoteArticle ->
-                val isFav = favArticlesEntity.any({ it.id == remoteArticle.id })
+        dbArticles.clear()
 
-                ArticleEntity(
-                    id = remoteArticle.id,
-                    title = remoteArticle.title,
-                    teaser = remoteArticle.teaser,
-                    content = remoteArticle.content,
-                    isFav = isFav
-                )
+        dbArticles.addAll(remoteArticlesEntity.map { remoteArticle ->
+            val isFav = favArticlesEntity.any({ it.id == remoteArticle.id })
 
-            }
+            ArticleEntity(
+                id = remoteArticle.id,
+                title = remoteArticle.title,
+                teaser = remoteArticle.teaser,
+                content = remoteArticle.content,
+                isFav = isFav
+            )
+        })
+
+        _trigger.value = !_trigger.value
     }
 
-    override fun toggleFavArticle(id: Int): Boolean {
+    override suspend fun toggleFavArticle(id: Int): Boolean {
         var newIsFav = false
 
-        dbArticles.value = dbArticles.value.map { article ->
+        dbArticles.forEach { article ->
             if (article.id == id) {
-                newIsFav = !article.isFav
-                ArticleEntity(
-                    id = article.id,
-                    title = article.title,
-                    teaser = article.teaser,
-                    content = article.content,
-                    isFav = newIsFav
-                )
-            } else article
+                article.isFav = !article.isFav
+                newIsFav = article.isFav
+                return@forEach
+            }
         }
 
+        _trigger.value = !_trigger.value
+
         return newIsFav
+    }
+
+    override suspend fun searchArticles(query: String) {
+        delay(250)
+        observedArticles.value =
+            if (query.isEmpty()) dbArticles
+            else dbArticles.filter {
+                it.title.contains(query, ignoreCase = true) ||
+                        it.teaser.contains(query, ignoreCase = true) ||
+                        it.content.contains(query, ignoreCase = true)
+            }
+
+        _trigger.value = !_trigger.value
     }
 }

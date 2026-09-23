@@ -5,5 +5,5 @@ data class ArticleEntity(
     val title: String,
     val teaser: String,
     val content: String,
-    val isFav: Boolean,
+    var isFav: Boolean,
 )
